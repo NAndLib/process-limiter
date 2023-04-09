@@ -15,6 +15,17 @@ touch "$LOG_FILE"
 # get the current date
 TODAY=$(date +%Y-%m-%d)
 
+notify_user() {
+  local summary="$1"
+  local body="$2"
+  if type notify-send &>/dev/null; then
+    notify-send -a "Notify Limiter" "$summary" "$body"
+  else
+    echo "$summary"
+    echo "$body"
+  fi
+}
+
 # wait for the process to show up in the process table
 while true; do
   PID=$(pgrep -x "$PROCESS_NAME")
@@ -34,7 +45,7 @@ while true; do
 
     # check if the total runtime exceeds the time limit
     if [ $((TOTAL_RUNTIME + RUNTIME)) -gt "$TIME_LIMIT" ]; then
-      echo "Process $PROCESS_NAME has exceeded the time limit and cannot be started."
+      notify_user "Time Limit Exceeded" "$PROCESS_NAME: $TIME_LIMIT second(s)"
       kill -9 "$PID"
       wait "$PID"
     else
