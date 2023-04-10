@@ -27,12 +27,10 @@ notify_user() {
 }
 
 write_log() {
-  local time="$1"
-  echo "$(date +%Y-%m-%d) $time" > "$LOG_FILE"
+  local real_total="${1:-0}"
+  local running_total="${2:-0}"
+  echo "$(date +%Y-%m-%d) $real_total $running_total" > "$LOG_FILE"
 }
-
-# Tracks if the process has been seen
-SEEN=0
 
 # wait for the process to show up in the process table
 while true; do
@@ -59,14 +57,14 @@ while true; do
       while kill -0 "$PID" &>/dev/null; do
         sleep 1
       done
-      write_log "$CURRENT_TOTAL"
+      write_log "$CURRENT_TOTAL" "$CURRENT_TOTAL"
     fi
-    SEEN=1
   else
-    if [ $SEEN -eq 1 ]; then
-      write_log "$CURRENT_TOTAL"
-      SEEN=0
+    TOTAL_RUNTIME=$(awk -v d="$TODAY" '$1 == d {print $3}' "$LOG_FILE")
+    if [ -z "$TOTAL_RUNTIME" ]; then
+      TOTAL_RUNTIME=0
     fi
   fi
+  write_log "$TOTAL_RUNTIME" "$CURRENT_TOTAL"
   sleep 10
 done

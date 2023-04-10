@@ -16,7 +16,8 @@ list_processes() {
     if [[ "$line" =~ ^([^:]+):([0-9]+)$ ]]; then
       process_name="${BASH_REMATCH[1]}"
       time_limit="${BASH_REMATCH[2]}"
-      echo "$process_name: $time_limit seconds"
+      total_time=$(awk -v d="$(date +%Y-%m-%d)" '$1 == d {print $3}' "$LOG_DIR/process_runtime_$process_name.log")
+      echo "$process_name: ${total_time:-0}/$time_limit seconds"
     fi
   done < "$LOG_FILE"
   echo "----------------------------------"
