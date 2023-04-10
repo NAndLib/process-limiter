@@ -26,6 +26,14 @@ notify_user() {
   fi
 }
 
+write_log() {
+  local time="$1"
+  echo "$(date +%Y-%m-%d) $time" > "$LOG_FILE"
+}
+
+# Tracks if the process has been seen
+SEEN=0
+
 # wait for the process to show up in the process table
 while true; do
   PID=$(pgrep -x "$PROCESS_NAME")
@@ -43,13 +51,21 @@ while true; do
       TOTAL_RUNTIME=0
     fi
 
+    CURRENT_TOTAL=$((TOTAL_RUNTIME + RUNTIME))
     # check if the total runtime exceeds the time limit
-    if [ $((TOTAL_RUNTIME + RUNTIME)) -gt "$TIME_LIMIT" ]; then
-      notify_user "Time Limit Exceeded" "$PROCESS_NAME: $TIME_LIMIT second(s)"
+    if [ $CURRENT_TOTAL -gt "$TIME_LIMIT" ]; then
+      notify_user "Time Limit Exceeded" "$PROCESS_NAME: $CURRENT_TOTAL/$TIME_LIMIT second(s)"
       kill -9 "$PID"
-      wait "$PID"
-    else
-      echo "$(date +%Y-%m-%d) $((TOTAL_RUNTIME + RUNTIME))" > "$LOG_FILE"
+      while kill -0 "$PID" &>/dev/null; do
+        sleep 1
+      done
+      write_log "$CURRENT_TOTAL"
+    fi
+    SEEN=1
+  else
+    if [ $SEEN -eq 1 ]; then
+      write_log "$CURRENT_TOTAL"
+      SEEN=0
     fi
   fi
   sleep 10
